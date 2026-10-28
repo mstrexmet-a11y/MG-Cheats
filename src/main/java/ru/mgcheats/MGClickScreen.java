@@ -189,13 +189,12 @@ public class MGClickScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(
-            double mouseX, double mouseY, double scrollX, double scrollY) {
-        scroll -= (int) Math.signum(scrollY) * 20;
-        scroll = Math.max(0, Math.min(scroll, maxScroll()));
-        return true;
-    }
-
+public boolean mouseScrolled(
+        double mouseX, double mouseY, double delta) {
+    scroll -= (int) Math.signum(delta) * 20;
+    scroll = Math.max(0, Math.min(scroll, maxScroll()));
+    return true;
+}
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_UP) {
