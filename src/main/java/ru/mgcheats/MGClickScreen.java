@@ -6,8 +6,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public class MGClickScreen extends Screen {
-    private static final int PANEL_W = 270;
-    private static final int PANEL_H = 330;
+    private static final int PANEL_W = 300;
+    private static final int PANEL_H = 390;
 
     private static final String[] NAMES = {
             "Auto Sprint",
@@ -17,7 +17,8 @@ public class MGClickScreen extends Screen {
             "FPS HUD",
             "Coordinates HUD",
             "Keystrokes",
-            "Reach Display"
+            "Reach Display",
+            "X-Ray"
     };
 
     public MGClickScreen() {
@@ -34,6 +35,7 @@ public class MGClickScreen extends Screen {
             case 5 -> ClientFeatures.coordsHud;
             case 6 -> ClientFeatures.keystrokes;
             case 7 -> ClientFeatures.reachDisplay;
+            case 8 -> XrayRenderer.enabled;
             default -> false;
         };
     }
@@ -56,6 +58,8 @@ public class MGClickScreen extends Screen {
                     !ClientFeatures.keystrokes;
             case 7 -> ClientFeatures.reachDisplay =
                     !ClientFeatures.reachDisplay;
+            case 8 -> XrayRenderer.enabled =
+                    !XrayRenderer.enabled;
         }
     }
 
@@ -81,14 +85,22 @@ public class MGClickScreen extends Screen {
 
             g.fill(x + 10, rowY, x + PANEL_W - 10,
                     rowY + 25, 0xFF25232E);
+
             g.drawString(font, NAMES[i], x + 18, rowY + 8,
                     0xFFFFFFFF, false);
 
             int color = on ? 0xFF9B59FF : 0xFF66616F;
             g.fill(x + PANEL_W - 54, rowY + 5,
                     x + PANEL_W - 18, rowY + 20, color);
+
             g.drawCenteredString(font, on ? "ON" : "OFF",
                     x + PANEL_W - 36, rowY + 9, 0xFFFFFFFF);
+
+            // Кнопка настроек X-Ray
+            if (i == 8) {
+                g.drawString(font, "Settings",
+                        x + 155, rowY + 8, 0xFFBBA6D9, false);
+            }
         }
 
         g.drawString(font, "Click a row to toggle",
@@ -106,19 +118,30 @@ public class MGClickScreen extends Screen {
             int x = (width - PANEL_W) / 2;
             int y = (height - PANEL_H) / 2;
 
-            if (mouseX >= x + 10 && mouseX <= x + PANEL_W - 10) {
-                for (int i = 0; i < NAMES.length; i++) {
-                    int rowY = y + 48 + i * 31;
+            for (int i = 0; i < NAMES.length; i++) {
+                int rowY = y + 48 + i * 31;
 
-                    if (mouseY >= rowY && mouseY <= rowY + 25) {
-                        toggle(i);
+                if (mouseX >= x + 10 && mouseX <= x + PANEL_W - 10
+                        && mouseY >= rowY && mouseY <= rowY + 25) {
+
+                    // Открыть настройки X-Ray по нажатию Settings
+                    if (i == 8 && mouseX >= x + 145
+                            && mouseX <= x + 220) {
+                        MCOpenSettings();
                         return true;
                     }
+
+                    toggle(i);
+                    return true;
                 }
             }
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void MCOpenSettings() {
+        minecraft.setScreen(new XraySettingsScreen(this));
     }
 
     @Override
