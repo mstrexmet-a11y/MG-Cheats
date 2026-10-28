@@ -6,7 +6,8 @@ import net.minecraftforge.fml.common.Mod;
 public class MGCheats {
     public static final String MOD_ID = "mgcheats";
 
-    public MGCheats() {
-        ClientFeatures.register();
-    }
+   public MGCheats() {
+    ClientFeatures.register();
+    XrayRenderer.register();
+}
 }
