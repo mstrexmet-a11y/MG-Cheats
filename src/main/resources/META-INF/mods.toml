@@ -1,0 +1,9 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="mgcheats"
+version="1.0.0"
+displayName="MG Cheats"
+description="Dark purple utility and PvP practice client for Minecraft 1.20.1 Forge."
