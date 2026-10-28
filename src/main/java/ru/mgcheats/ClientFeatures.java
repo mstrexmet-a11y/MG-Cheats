@@ -33,13 +33,17 @@ public final class ClientFeatures {
     public static boolean reachDisplay = true;
 
     private static boolean appliedNightVision = false;
+
     private static KeyMapping openMenu;
+    private static KeyMapping toggleAim;
 
     private ClientFeatures() {}
 
     public static void register() {
         MinecraftForge.EVENT_BUS.register(ClientFeatures.class);
-        FMLJavaModLoadingContext.get().getModEventBus()
+
+        FMLJavaModLoadingContext.get()
+                .getModEventBus()
                 .addListener(ClientFeatures::registerKeys);
     }
 
@@ -52,6 +56,16 @@ public final class ClientFeatures {
                 "key.categories.mgcheats"
         );
         event.register(openMenu);
+
+        // Отдельная клавиша включения и выключения автонаводки: =
+        toggleAim = new KeyMapping(
+                "key.mgcheats.toggle_aim",
+                KeyConflictContext.IN_GAME,
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_EQUAL,
+                "key.categories.mgcheats"
+        );
+        event.register(toggleAim);
     }
 
     @SubscribeEvent
@@ -59,22 +73,34 @@ public final class ClientFeatures {
         if (event.phase != TickEvent.Phase.END) return;
         if (MC.player == null || MC.level == null) return;
 
+        // Открытие меню MG Cheats
         if (openMenu != null && openMenu.consumeClick()) {
             MC.setScreen(new MGClickScreen());
         }
 
+        // Отдельное переключение автонаводки клавишей =
+        if (toggleAim != null && toggleAim.consumeClick()) {
+            autoAim = !autoAim;
+        }
+
+        // Автоматический бег
         if (autoSprint && MC.player.input != null
                 && MC.player.input.forwardImpulse > 0.0F) {
             MC.player.setSprinting(true);
         }
 
+        // Ночное зрение
         updateNightVision();
 
+        // Автонаводка на ближайшую подходящую цель
         if (autoAim) {
             LivingEntity target = findTarget(6.0);
-            if (target != null) aimAt(target);
+            if (target != null) {
+                aimAt(target);
+            }
         }
 
+        // Автоматическая атака
         if (killAura && MC.player.tickCount % 10 == 0
                 && MC.gameMode != null) {
             LivingEntity target = findTarget(4.0);
@@ -95,7 +121,11 @@ public final class ClientFeatures {
             if (effect == null || effect.getDuration() < 100) {
                 MC.player.addEffect(new MobEffectInstance(
                         MobEffects.NIGHT_VISION,
-                        260, 0, false, false, false
+                        260,
+                        0,
+                        false,
+                        false,
+                        false
                 ));
                 appliedNightVision = true;
             }
@@ -111,15 +141,25 @@ public final class ClientFeatures {
         double dy = target.getEyeY() - MC.player.getEyeY();
         double horizontal = Math.sqrt(dx * dx + dz * dz);
 
-        float targetYaw = (float) (Mth.atan2(dz, dx)
-                * (180.0 / Math.PI)) - 90.0F;
-        float targetPitch = (float) -(Mth.atan2(dy, horizontal)
-                * (180.0 / Math.PI));
+        float targetYaw = (float) (
+                Mth.atan2(dz, dx) * (180.0 / Math.PI)
+        ) - 90.0F;
 
-        MC.player.setYRot(MC.player.getYRot()
-                + Mth.wrapDegrees(targetYaw - MC.player.getYRot()) * 0.25F);
-        MC.player.setXRot(MC.player.getXRot()
-                + (targetPitch - MC.player.getXRot()) * 0.25F);
+        float targetPitch = (float) -(
+                Mth.atan2(dy, horizontal) * (180.0 / Math.PI)
+        );
+
+        MC.player.setYRot(
+                MC.player.getYRot()
+                        + Mth.wrapDegrees(
+                                targetYaw - MC.player.getYRot()
+                        ) * 0.25F
+        );
+
+        MC.player.setXRot(
+                MC.player.getXRot()
+                        + (targetPitch - MC.player.getXRot()) * 0.25F
+        );
     }
 
     private static LivingEntity findTarget(double range) {
@@ -127,18 +167,21 @@ public final class ClientFeatures {
         AABB box = player.getBoundingBox().inflate(range);
 
         return MC.level.getEntitiesOfClass(
-                LivingEntity.class,
-                box,
-                entity -> entity != player
-                        && entity.isAlive()
-                        && !entity.isSpectator()
-                        && (!(entity instanceof Player other)
-                            || !other.isCreative())
-        ).stream()
-         .filter(entity -> player.distanceTo(entity) <= range)
-         .min((a, b) -> Double.compare(
-                 player.distanceTo(a), player.distanceTo(b)))
-         .orElse(null);
+                        LivingEntity.class,
+                        box,
+                        entity -> entity != player
+                                && entity.isAlive()
+                                && !entity.isSpectator()
+                                && (!(entity instanceof Player other)
+                                || !other.isCreative())
+                )
+                .stream()
+                .filter(entity -> player.distanceTo(entity) <= range)
+                .min((a, b) -> Double.compare(
+                        player.distanceTo(a),
+                        player.distanceTo(b)
+                ))
+                .orElse(null);
     }
 
     @SubscribeEvent
@@ -148,12 +191,20 @@ public final class ClientFeatures {
         var g = event.getGuiGraphics();
         int y = 8;
 
+        // FPS
         if (fpsHud) {
-            g.drawString(MC.font, "FPS: " + MC.getFps(),
-                    8, y, 0xFF55FF55, true);
+            g.drawString(
+                    MC.font,
+                    "FPS: " + MC.getFps(),
+                    8,
+                    y,
+                    0xFF55FF55,
+                    true
+            );
             y += 12;
         }
 
+        // Координаты игрока
         if (coordsHud) {
             String coords = String.format(
                     "XYZ: %.1f / %.1f / %.1f",
@@ -161,13 +212,22 @@ public final class ClientFeatures {
                     MC.player.getY(),
                     MC.player.getZ()
             );
-            g.drawString(MC.font, coords, 8, y,
-                    0xFFFFFFFF, true);
+
+            g.drawString(
+                    MC.font,
+                    coords,
+                    8,
+                    y,
+                    0xFFFFFFFF,
+                    true
+            );
         }
 
+        // Отображение нажатых клавиш
         if (keystrokes) {
             int x = 8;
             int baseY = MC.getWindow().getGuiScaledHeight() - 55;
+
             drawKey(g, "W", x + 22, baseY,
                     MC.options.keyUp.isDown());
             drawKey(g, "A", x, baseY + 22,
@@ -180,24 +240,48 @@ public final class ClientFeatures {
                     MC.options.keyAttack.isDown());
         }
 
-        if (reachDisplay && MC.hitResult instanceof EntityHitResult hit) {
+        // Расстояние до сущности под прицелом
+        if (reachDisplay
+                && MC.hitResult instanceof EntityHitResult hit) {
             double distance = MC.player.distanceTo(hit.getEntity());
-            String text = String.format("Reach: %.2f blocks", distance);
-            int width = MC.font.width(text);
-            int centerX = MC.getWindow().getGuiScaledWidth() / 2;
 
-            g.drawString(MC.font, text, centerX - width / 2,
+            String text = String.format(
+                    "Reach: %.2f blocks",
+                    distance
+            );
+
+            int width = MC.font.width(text);
+            int centerX =
+                    MC.getWindow().getGuiScaledWidth() / 2;
+
+            g.drawString(
+                    MC.font,
+                    text,
+                    centerX - width / 2,
                     MC.getWindow().getGuiScaledHeight() / 2 + 12,
-                    0xFFFFFFFF, true);
+                    0xFFFFFFFF,
+                    true
+            );
         }
     }
 
     private static void drawKey(
             net.minecraft.client.gui.GuiGraphics g,
-            String text, int x, int y, boolean pressed) {
+            String text,
+            int x,
+            int y,
+            boolean pressed
+    ) {
         int color = pressed ? 0xFF8B45D9 : 0xCC22222C;
+
         g.fill(x, y, x + 20, y + 18, color);
-        g.drawCenteredString(MC.font, text, x + 10, y + 5,
-                0xFFFFFFFF);
+
+        g.drawCenteredString(
+                MC.font,
+                text,
+                x + 10,
+                y + 5,
+                0xFFFFFFFF
+        );
     }
 }
