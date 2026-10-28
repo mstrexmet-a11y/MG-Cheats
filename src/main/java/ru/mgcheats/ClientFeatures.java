@@ -223,7 +223,7 @@ public final class ClientFeatures {
 
         // Список игроков в радиусе 10 блоков.
         if (playerList) {
-            List<Player> nearby = MC.level.players().stream()
+            List<? extends Player> nearby = MC.level.players().stream()
                     .filter(p -> p != MC.player)
                     .filter(Player::isAlive)
                     .filter(p ->
