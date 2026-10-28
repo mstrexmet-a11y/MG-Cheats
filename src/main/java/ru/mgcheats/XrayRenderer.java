@@ -55,24 +55,7 @@ public final class XrayRenderer {
      * Отрисовка контуров без проверки глубины.
      * Это позволяет видеть контуры руд за непрозрачными блоками.
      */
-    private static final RenderType XRAY_LINES = RenderType.create(
-            "mgcheats_xray_lines",
-            DefaultVertexFormat.POSITION_COLOR,
-            VertexFormat.Mode.LINES,
-            256,
-            false,
-            false,
-            RenderType.CompositeState.builder()
-                    .setShaderState(RenderStateShard.RENDERTYPE_LINES_SHADER)
-                    .setLineState(RenderStateShard.DEFAULT_LINE)
-                    .setLayeringState(RenderStateShard.NO_LAYERING)
-                    .setTransparencyState(RenderStateShard.NO_TRANSPARENCY)
-                    .setOutputState(RenderStateShard.MAIN_TARGET)
-                    .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
-                    .setCullState(RenderStateShard.NO_CULL)
-                    .createCompositeState(false)
-    );
+   private static final RenderType XRAY_LINES = RenderType.lines();
 
     @SubscribeEvent
     public static void onTick(TickEvent.ClientTickEvent event) {
