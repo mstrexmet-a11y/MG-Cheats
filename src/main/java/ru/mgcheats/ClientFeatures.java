@@ -103,7 +103,7 @@ public final class ClientFeatures {
 
         if (killAura && MC.player.tickCount % 10 == 0
                 && MC.gameMode != null) {
-            Player target = findAimTarget();
+            LivingEntity target = findAimTarget();
             if (target != null
                     && MC.player.distanceTo(target) <= 4.0F) {
                 MC.gameMode.attack(MC.player, target);
