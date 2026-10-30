@@ -30,8 +30,7 @@ public class MGClickScreen extends Screen {
         "Coordinates HUD",
         "Keystrokes",
         "Reach Display",
-        "X-Ray",
-        "Black Hole Visual"
+        "X-Ray"
     };
 
     public MGClickScreen() {
@@ -49,7 +48,6 @@ public class MGClickScreen extends Screen {
             case 6 -> ClientFeatures.keystrokes;
             case 7 -> ClientFeatures.reachDisplay;
             case 8 -> XrayRenderer.enabled;
-            case 9 -> BlackHoleVisual.enabled;
             default -> false;
         };
     }
@@ -65,7 +63,6 @@ public class MGClickScreen extends Screen {
             case 6 -> ClientFeatures.keystrokes = !ClientFeatures.keystrokes;
             case 7 -> ClientFeatures.reachDisplay = !ClientFeatures.reachDisplay;
             case 8 -> XrayRenderer.enabled = !XrayRenderer.enabled;
-            case 9 -> BlackHoleVisual.enabled = !BlackHoleVisual.enabled;
         }
     }
 
