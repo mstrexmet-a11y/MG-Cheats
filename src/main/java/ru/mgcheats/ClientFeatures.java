@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -94,7 +95,7 @@ public final class ClientFeatures {
         updateNightVision();
 
         if (autoAim) {
-            Player target = findAimTarget();
+            LivingEntity target = findAimTarget();
             if (target != null) {
                 aimAt(target);
             }
@@ -137,15 +138,18 @@ public final class ClientFeatures {
     }
 
     // Находим игрока только если прицел уже находится рядом с ним.
-    private static Player findAimTarget() {
+    private static LivingEntity findAimTarget() {
         Player player = MC.player;
         Vec3 look = player.getLookAngle();
 
-        return MC.level.players().stream()
+        return MC.level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        player.getBoundingBox().inflate(AIM_RANGE)
+                ).stream()
                 .filter(target -> target != player)
                 .filter(target -> target.isAlive())
                 .filter(target -> !target.isSpectator())
-                .filter(target -> !target.isCreative())
+                .filter(target -> !(target instanceof Player other) || !other.isCreative())
                 .filter(target ->
                         player.distanceTo(target) <= AIM_RANGE)
                 .filter(target -> {
@@ -165,7 +169,7 @@ public final class ClientFeatures {
                 .orElse(null);
     }
 
-    private static void aimAt(Player target) {
+    private static void aimAt(LivingEntity target) {
         double dx = target.getX() - MC.player.getX();
         double dz = target.getZ() - MC.player.getZ();
         double dy = target.getEyeY() - MC.player.getEyeY();
