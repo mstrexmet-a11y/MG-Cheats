@@ -9,5 +9,6 @@ public class MGCheats {
    public MGCheats() {
     ClientFeatures.register();
     XrayRenderer.register();
+    BlackHoleVisual.register();
 }
 }
