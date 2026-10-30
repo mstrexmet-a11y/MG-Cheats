@@ -27,9 +27,9 @@ public final class ClientFeatures {
     private static final Minecraft MC = Minecraft.getInstance();
 
     private static final double PLAYER_RANGE = 10.0;
-    private static final double AIM_RANGE = 6.0;
-    private static final double AIM_MAX_ANGLE = 10.0;
-    private static final float AIM_SMOOTHING = 0.12F;
+    private static final double AIM_RANGE = 12.0;
+    private static final double AIM_MAX_ANGLE = 35.0;
+    private static final float AIM_SMOOTHING = 0.28F;
 
     public static boolean autoSprint = true;
     public static boolean nightVision = false;
@@ -137,7 +137,7 @@ public final class ClientFeatures {
         }
     }
 
-    // Находим игрока только если прицел уже находится рядом с ним.
+    // Выбираем видимую живую цель, ближайшую к центру прицела.
     private static LivingEntity findAimTarget() {
         Player player = MC.player;
         Vec3 look = player.getLookAngle();
@@ -147,32 +147,42 @@ public final class ClientFeatures {
                         player.getBoundingBox().inflate(AIM_RANGE)
                 ).stream()
                 .filter(target -> target != player)
-                .filter(target -> target.isAlive())
+                .filter(LivingEntity::isAlive)
                 .filter(target -> !target.isSpectator())
                 .filter(target -> !(target instanceof Player other) || !other.isCreative())
-                .filter(target ->
-                        player.distanceTo(target) <= AIM_RANGE)
+                .filter(player::hasLineOfSight)
+                .filter(target -> player.distanceTo(target) <= AIM_RANGE)
                 .filter(target -> {
-                    Vec3 direction = target.getEyePosition()
-                            .subtract(player.getEyePosition())
-                            .normalize();
-
-                    double dot = Mth.clamp(
-                            look.dot(direction), -1.0, 1.0);
-                    double angle = Math.toDegrees(
-                            Math.acos(dot));
-
+                    Vec3 aimPoint = new Vec3(
+                            target.getX(),
+                            target.getY() + target.getBbHeight() * 0.65,
+                            target.getZ()
+                    );
+                    Vec3 direction = aimPoint.subtract(player.getEyePosition()).normalize();
+                    double dot = Mth.clamp(look.dot(direction), -1.0, 1.0);
+                    double angle = Math.toDegrees(Math.acos(dot));
                     return angle <= AIM_MAX_ANGLE;
                 })
-                .min(Comparator.comparingDouble(
-                        player::distanceTo))
+                .min(Comparator.comparingDouble(target -> {
+                    Vec3 aimPoint = new Vec3(
+                            target.getX(),
+                            target.getY() + target.getBbHeight() * 0.65,
+                            target.getZ()
+                    );
+                    Vec3 direction = aimPoint.subtract(player.getEyePosition()).normalize();
+                    double dot = Mth.clamp(look.dot(direction), -1.0, 1.0);
+                    double angle = Math.toDegrees(Math.acos(dot));
+                    // Приоритет — точности наведения, затем расстоянию.
+                    return angle + player.distanceTo(target) * 0.15;
+                }))
                 .orElse(null);
     }
 
     private static void aimAt(LivingEntity target) {
         double dx = target.getX() - MC.player.getX();
         double dz = target.getZ() - MC.player.getZ();
-        double dy = target.getEyeY() - MC.player.getEyeY();
+        double dy = target.getY() + target.getBbHeight() * 0.65
+                - MC.player.getEyeY();
         double horizontal = Math.sqrt(dx * dx + dz * dz);
 
         float targetYaw = (float) (
@@ -185,15 +195,13 @@ public final class ClientFeatures {
 
         float yawDifference = Mth.wrapDegrees(
                 targetYaw - MC.player.getYRot());
+        float pitchDifference = Mth.wrapDegrees(
+                targetPitch - MC.player.getXRot());
 
         MC.player.setYRot(
-                MC.player.getYRot()
-                        + yawDifference * AIM_SMOOTHING);
-
+                MC.player.getYRot() + yawDifference * AIM_SMOOTHING);
         MC.player.setXRot(Mth.clamp(
-                MC.player.getXRot()
-                        + (targetPitch - MC.player.getXRot())
-                        * AIM_SMOOTHING,
+                MC.player.getXRot() + pitchDifference * AIM_SMOOTHING,
                 -90.0F,
                 90.0F
         ));
