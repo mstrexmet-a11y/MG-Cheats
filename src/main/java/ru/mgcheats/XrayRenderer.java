@@ -1,16 +1,18 @@
 
 package ru.mgcheats;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -55,8 +57,6 @@ public final class XrayRenderer {
      * Отрисовка контуров без проверки глубины.
      * Это позволяет видеть контуры руд за непрозрачными блоками.
      */
-   private static final RenderType XRAY_LINES = RenderType.lines();
-
     @SubscribeEvent
     public static void onTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
@@ -201,9 +201,9 @@ public final class XrayRenderer {
                 -cameraPos.z
         );
 
-        var buffers = mc.renderBuffers().bufferSource();
-
-        VertexConsumer lines = buffers.getBuffer(XRAY_LINES);
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder lines = tesselator.getBuilder();
+        lines.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
 
         for (OreBlock ore : ORES) {
             BlockPos p = ore.pos();
@@ -239,6 +239,16 @@ public final class XrayRenderer {
 
         pose.popPose();
 
-        buffers.endBatch(XRAY_LINES);
+        // Draw the ore outlines with depth testing disabled so blocks
+        // do not hide the highlighted ores.
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
+        RenderSystem.lineWidth(2.0F);
+        BufferUploader.drawWithShader(lines.end());
+        RenderSystem.lineWidth(1.0F);
+        RenderSystem.enableDepthTest();
+        RenderSystem.disableBlend();
     }
 }
